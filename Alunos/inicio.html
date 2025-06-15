@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Leia Aus - Início do Aluno</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: white;
+      color: #00bcd4; /* texto ciano */
+      padding: 30px;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .info {
+      margin-bottom: 30px;
+      font-size: 18px;
+      color: #00bcd4;
+    }
+
+    .card {
+      background: white;
+      border: 2px solid #00bcd4;
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 350px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      color: black;
+    }
+
+    .card img {
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    .card h3 {
+      margin: 0;
+      color: #00bcd4;
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #00bcd4;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .navbar {
+  background: #00bcd4;
+  padding: 15px;
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+}
+.navbar a {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+  </style>
+</head>
+<body>
+
+<div class="navbar">
+  <a href="inicio.html">🏠 Início</a>
+  <a href="livros.html">📘 Livros</a>
+</div>
+
+  <h1 id="boasVindas">Bem-vindo(a)!</h1>
+  <div class="info" id="estatisticas">Você já leu ... livros e passou ... minutos no site.</div>
+
+  <div class="card" id="cardLivro" style="display:none;">
+    <img id="capaLivro" src="" alt="Capa do Livro" />
+    <h3 id="tituloLivro">Título</h3>
+    <p id="sinopseLivro">Sinopse...</p>
+    <a class="btn" id="btnContinuar" href="#">Continuar Leitura</a>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCL2e1Zi-pzXQZ-02vQf6I8rYjbi5IzaRo",
+      authDomain: "aula-miraculosa.firebaseapp.com",
+      databaseURL: "https://aula-miraculosa-default-rtdb.firebaseio.com",
+      projectId: "aula-miraculosa",
+      storageBucket: "aula-miraculosa.appspot.com",
+      messagingSenderId: "1067250456026",
+      appId: "1:1067250456026:web:632e43e793155444035ce3"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const nomeAluno = sessionStorage.getItem("nomeAluno") || "Aluno";
+    document.getElementById("boasVindas").textContent = `Bem-vindo(a), ${nomeAluno}!`;
+
+    // Estatísticas
+    db.ref("leitura/aluno/" + nomeAluno).once("value").then(snapshot => {
+      const livrosLidos = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+      db.ref("tempoOnline/" + nomeAluno).once("value").then(snap => {
+        const tempo = snap.val() || 0;
+        document.getElementById("estatisticas").textContent = `Você já leu ${livrosLidos} livro(s) e passou ${tempo} minuto(s) no site.`;
+      });
+    });
+
+    // Último livro (pega o mais recente por ordem)
+    db.ref("leitura/aluno/" + nomeAluno).limitToLast(1).once("value").then(snapshot => {
+      snapshot.forEach(child => {
+        const titulo = child.key;
+
+        db.ref("professor").once("value").then(profs => {
+          let livroEncontrado = false;
+          profs.forEach(prof => {
+            const dados = prof.child("leituras/" + titulo).val();
+            if (dados) {
+              document.getElementById("tituloLivro").textContent = titulo;
+              document.getElementById("sinopseLivro").textContent = dados.sinopse || "Sem sinopse.";
+              document.getElementById("capaLivro").src = dados.capadolivro || "https://via.placeholder.com/300x400";
+              document.getElementById("cardLivro").style.display = "block";
+              document.getElementById("btnContinuar").href = "livros.html?titulo=" + encodeURIComponent(titulo);
+              livroEncontrado = true;
+            }
+          });
+          if (!livroEncontrado) {
+            document.getElementById("cardLivro").style.display = "none";
+          }
+        });
+      });
+    });
+  </script>
+
+</body>
+</html>

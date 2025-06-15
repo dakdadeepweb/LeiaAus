@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Visualizar Leituras</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 30px;
+    }
+
+    h1 {
+      color: #007bff;
+      margin-bottom: 20px;
+    }
+
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      padding: 16px;
+      width: 250px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.02);
+    }
+
+    .card img {
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    .card h3 {
+      margin: 0;
+      color: #007bff;
+    }
+
+    .card p {
+      font-size: 14px;
+      color: #333;
+      margin: 5px 0 0;
+    }
+
+    /* POPUP DE LEITURA */
+    .popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .popup.show {
+      display: flex;
+    }
+
+.popup-content {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  width: 95vw;
+  height: 95vh;
+  box-shadow: 0 0 20px rgba(0,0,0,0.4);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.popup-content img {
+  max-height: 80vh;
+  max-width: 90vw;
+  object-fit: contain;
+  border: 2px solid #007bff;
+  border-radius: 10px;
+  background: white;
+}
+v
+
+    .navegacao {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .navegacao button {
+      padding: 8px 16px;
+      font-size: 16px;
+      font-weight: bold;
+      background: #007bff;
+      border: none;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .fechar {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 22px;
+      color: #dc3545;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Seus Livros Lançados</h1>
+<div class="grid" id="livrosContainer"></div>
+
+<!-- POPUP DE LEITURA -->
+<div class="popup" id="popupLivro">
+  <div class="popup-content">
+    <span class="fechar" onclick="fecharPopup()">✖</span>
+    <h2 id="tituloLeitura"></h2>
+    <img id="imgPagina" src="" alt="Página do Livro" />
+    <div class="navegacao">
+      <button onclick="paginaAnterior()">⭠ Anterior</button>
+      <span id="contadorPagina">Página 1</span>
+      <button onclick="proximaPagina()">Próxima ⭢</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCL2e1Zi-pzXQZ-02vQf6I8rYjbi5IzaRo",
+    authDomain: "aula-miraculosa.firebaseapp.com",
+    databaseURL: "https://aula-miraculosa-default-rtdb.firebaseio.com",
+    projectId: "aula-miraculosa",
+    storageBucket: "aula-miraculosa.appspot.com",
+    messagingSenderId: "1067250456026",
+    appId: "1:1067250456026:web:632e43e793155444035ce3"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const nomeProfessor = sessionStorage.getItem("nomeProfessor") || "Professor";
+  const container = document.getElementById("livrosContainer");
+
+  let paginasAtuais = [];
+  let indiceAtual = 0;
+
+  function carregarLivros() {
+    db.ref(`professor/${nomeProfessor}/leituras`).once("value").then(snapshot => {
+      snapshot.forEach(child => {
+        const titulo = child.key;
+        const dados = child.val();
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const img = document.createElement("img");
+        img.src = dados.capadolivro || "https://via.placeholder.com/300x400";
+        card.appendChild(img);
+
+        const h3 = document.createElement("h3");
+        h3.textContent = titulo;
+        card.appendChild(h3);
+
+        const p = document.createElement("p");
+        p.textContent = dados.sinopse || "Sem sinopse.";
+        card.appendChild(p);
+
+        card.addEventListener("click", () => {
+          abrirPopup(titulo, dados.paginas || []);
+        });
+
+        container.appendChild(card);
+      });
+    });
+  }
+
+  function abrirPopup(titulo, paginas) {
+    if (!paginas || paginas.length === 0) return;
+
+    paginasAtuais = paginas;
+    indiceAtual = 0;
+
+    document.getElementById("tituloLeitura").textContent = titulo;
+    document.getElementById("imgPagina").src = paginasAtuais[indiceAtual];
+    document.getElementById("contadorPagina").textContent = `Página ${indiceAtual + 1} de ${paginasAtuais.length}`;
+    document.getElementById("popupLivro").classList.add("show");
+  }
+
+  function fecharPopup() {
+    document.getElementById("popupLivro").classList.remove("show");
+    paginasAtuais = [];
+    indiceAtual = 0;
+  }
+
+  function paginaAnterior() {
+    if (indiceAtual > 0) {
+      indiceAtual--;
+      atualizarPagina();
+    }
+  }
+
+  function proximaPagina() {
+    if (indiceAtual < paginasAtuais.length - 1) {
+      indiceAtual++;
+      atualizarPagina();
+    }
+  }
+
+  function atualizarPagina() {
+    document.getElementById("imgPagina").src = paginasAtuais[indiceAtual];
+    document.getElementById("contadorPagina").textContent = `Página ${indiceAtual + 1} de ${paginasAtuais.length}`;
+  }
+
+  carregarLivros();
+</script>
+
+</body>
+</html>

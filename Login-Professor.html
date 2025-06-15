@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login do Professor - Leia Aus</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 320px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    input {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      padding: 12px;
+      width: 100%;
+      background-color: #007bff;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #avatar-professor {
+      display: none;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      margin: 10px auto;
+    }
+
+    .popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      visibility: hidden;
+      opacity: 0;
+      transition: 0.3s;
+    }
+
+    .popup.show {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .popup-content {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    .popup-content p {
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+
+    .popup-content button {
+      background-color: #007bff;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Login do Professor</h2>
+
+    <img id="avatar-professor" src="" alt="Avatar do Professor" />
+
+    <input type="text" id="nome" placeholder="Nome do Professor" oninput="buscarAvatar()">
+    <input type="password" id="senha" placeholder="Senha">
+    <button onclick="fazerLogin()">Entrar</button>
+  </div>
+
+  <!-- Popup -->
+  <div class="popup" id="popup">
+    <div class="popup-content">
+      <p id="popup-message">Mensagem</p>
+      <button onclick="fecharPopup()">OK</button>
+    </div>
+  </div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCL2e1Zi-pzXQZ-02vQf6I8rYjbi5IzaRo",
+    authDomain: "aula-miraculosa.firebaseapp.com",
+    databaseURL: "https://aula-miraculosa-default-rtdb.firebaseio.com",
+    projectId: "aula-miraculosa",
+    storageBucket: "aula-miraculosa.appspot.com",
+    messagingSenderId: "1067250456026",
+    appId: "1:1067250456026:web:632e43e793155444035ce3"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  function buscarAvatar() {
+    const nome = document.getElementById("nome").value.trim();
+    const avatar = document.getElementById("avatar-professor");
+
+    if (!nome) {
+      avatar.style.display = "none";
+      return;
+    }
+
+    db.ref("Professores/" + nome).once("value").then(snap => {
+      const dados = snap.val();
+      if (dados && dados.Avatar) {
+        avatar.src = dados.Avatar;
+        avatar.style.display = "block";
+      } else {
+        avatar.style.display = "none";
+      }
+    });
+  }
+
+  function fazerLogin() {
+    const nome = document.getElementById("nome").value.trim();
+    const senha = document.getElementById("senha").value;
+
+    db.ref("Professores/" + nome).once("value").then(snap => {
+      const dados = snap.val();
+      if (dados && dados.Senha === senha) {
+        sessionStorage.setItem("nomeProfessor", dados.Nome || nome);
+        sessionStorage.setItem("materiaProfessor", dados.Materia || "SemMateria");
+
+        mostrarPopup(`Bem-vindo(a), ${dados.Nome || nome}!`, () => {
+          window.location.href = "Professor/inicio.html";
+        });
+      } else {
+        mostrarPopup("Nome ou senha incorretos!");
+      }
+    });
+  }
+
+  function mostrarPopup(msg, callback = null) {
+    const popup = document.getElementById("popup");
+    document.getElementById("popup-message").textContent = msg;
+    popup.classList.add("show");
+    window._popupCallback = callback;
+  }
+
+  function fecharPopup() {
+    const popup = document.getElementById("popup");
+    popup.classList.remove("show");
+    if (typeof window._popupCallback === "function") {
+      window._popupCallback();
+    }
+    window._popupCallback = null;
+  }
+</script>
+
+</body>
+</html>

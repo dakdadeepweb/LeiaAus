@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lançamento de Leitura</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      padding: 30px;
+    }
+
+    h1 {
+      color: #007bff;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+
+    .btn-primary {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .btn-success {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .btn-danger {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .popup {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    .popup.show {
+      display: flex;
+    }
+
+    .popup-content {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 600px;
+      width: 90%;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .url-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .url-group input {
+      flex: 1;
+    }
+
+    .url-group button {
+      background-color: #dc3545;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: none;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Lançamento de Novo Livro</h1>
+  <button class="btn btn-primary" onclick="abrirPopup()">Realizar Novo Lançamento</button>
+
+  <!-- POPUP -->
+  <div class="popup" id="popupLancamento">
+    <div class="popup-content">
+      <h2>Nova Leitura</h2>
+
+      <input type="text" id="tituloLivro" placeholder="Título do Livro">
+      <textarea id="sinopseLivro" placeholder="Sinopse do livro" rows="4"></textarea>
+
+      <div id="listaPaginas">
+        <div class="url-group">
+          <input type="url" placeholder="URL da página 1">
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="adicionarPagina()">+ Adicionar Página</button>
+      <br>
+      <button class="btn btn-success" onclick="salvarLivro()">LANÇAR</button>
+      <button class="btn btn-danger" onclick="fecharPopup()">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- POPUP SUCESSO -->
+  <div class="popup" id="popupSucesso">
+    <div class="popup-content">
+      <h3>Livro lançado com sucesso!</h3>
+      <p>Gostaria de vê-lo agora?</p>
+      <button class="btn btn-success" onclick="window.location.href='vizualização.html'">Sim</button>
+      <button class="btn btn-danger" onclick="document.getElementById('popupSucesso').classList.remove('show')">Não</button>
+    </div>
+  </div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCL2e1Zi-pzXQZ-02vQf6I8rYjbi5IzaRo",
+    authDomain: "aula-miraculosa.firebaseapp.com",
+    databaseURL: "https://aula-miraculosa-default-rtdb.firebaseio.com",
+    projectId: "aula-miraculosa",
+    storageBucket: "aula-miraculosa.appspot.com",
+    messagingSenderId: "1067250456026",
+    appId: "1:1067250456026:web:632e43e793155444035ce3"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const nomeProfessor = sessionStorage.getItem("nomeProfessor") || "Professor";
+
+  function abrirPopup() {
+    document.getElementById("popupLancamento").classList.add("show");
+  }
+
+  function fecharPopup() {
+    document.getElementById("popupLancamento").classList.remove("show");
+  }
+
+  function adicionarPagina() {
+    const container = document.getElementById("listaPaginas");
+    const grupo = document.createElement("div");
+    grupo.className = "url-group";
+
+    const input = document.createElement("input");
+    input.type = "url";
+    input.placeholder = "URL da página";
+
+    const removerBtn = document.createElement("button");
+    removerBtn.textContent = "✕";
+    removerBtn.onclick = () => grupo.remove();
+
+    grupo.appendChild(input);
+    grupo.appendChild(removerBtn);
+    container.appendChild(grupo);
+  }
+
+  function salvarLivro() {
+    const titulo = document.getElementById("tituloLivro").value.trim();
+    const sinopse = document.getElementById("sinopseLivro").value.trim();
+    const urlInputs = document.querySelectorAll("#listaPaginas input");
+    const urls = Array.from(urlInputs)
+      .map(input => input.value.trim())
+      .filter(url => url !== "");
+
+    if (!titulo || !sinopse || urls.length === 0) {
+      alert("Preencha todos os campos e adicione pelo menos uma URL.");
+      return;
+    }
+
+    db.ref(`professor/${nomeProfessor}/leituras/${titulo}`).set({
+      sinopse: sinopse,
+      paginas: urls,
+      capadolivro: `https://picsum.photos/seed/${titulo.replace(/\s/g, "")}/300/400`
+    }).then(() => {
+      document.getElementById("popupLancamento").classList.remove("show");
+      document.getElementById("popupSucesso").classList.add("show");
+    }).catch(err => {
+      alert("Erro ao salvar: " + err.message);
+    });
+  }
+</script>
+
+</body>
+</html>
